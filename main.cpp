@@ -5,11 +5,12 @@
 #include <stdlib.h>
 #include <iostream>
 
-const int table_size = 600;
-const int table_width = 5;
-const int table_record_size = 25;
-const int food_size = 5;
-
+const int table_size = 600; // Размер игрового поля
+const int table_width = 5; // Ширина линий поля
+const int table_record_size = 25; //Размер таблички для счета
+const int food_size = 5; // Размер еды для змеки
+const int step = 2; // Шаг змейки по полю
+const int size_rise = 10; // Размер роста змейки
 
 
 struct Point {
@@ -30,6 +31,7 @@ enum class Direction {
 };
 
 bool in_radius(Point a, Point b, int r) {
+    // Функция проверяет находится ли одна точка в окружности другой точки
     return  (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) <= r * r;
 }
 class Food : public sf::Drawable, public sf::Transformable {
@@ -37,11 +39,11 @@ public:
     Point food_point;
 
     void CreateFood() {
+        // Создает точку в пределах игрового поля
         std::srand(time(nullptr));
         int rnd = random();
         food_point.x = rnd % (table_size - table_width - food_size + 1) + table_width + food_size;
-        food_point.y =
-                rnd % (table_size - table_width - table_record_size - food_size + 1) + table_width + table_record_size +
+        food_point.y = rnd % (table_size - table_width - table_record_size - food_size + 1) + table_width + table_record_size +
                 food_size;
         std::cout << food_point.x << " " << food_point.y << std::endl;
     }
@@ -51,6 +53,7 @@ public:
     }
 
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
+        // Рисует точку
         states.transform *= getTransform();
         sf::CircleShape circle(5.f);
         circle.move(food_point.x, food_point.y);
@@ -61,14 +64,11 @@ public:
 class Snake : public sf::Drawable, public sf::Transformable {
 private:
     std::list<Point> snake_list;
-    const int step = 2;
-    const int size_rise = 10;
     int food_flag = size_rise;
-    bool rotate = true;
-
 
 public:
-    Snake(int x = 300, int y = 300, int length =  40) {
+    Snake(int x = table_size / 2, int y = table_size / 2, int length =  40) {
+        // Создает змейку
         for (int i = x - length; i < x;i+=step) {
             Point p((i), y);
             snake_list.push_back(p);
@@ -77,6 +77,7 @@ public:
     }
 
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
+        // Отрисовывает змейку
         states.transform *= getTransform();
         for (auto i = snake_list.begin(); i != snake_list.end(); ++i) {
             sf::CircleShape circle(5.f);
@@ -87,6 +88,7 @@ public:
     }
 
     Point GetNextPoint(Direction direction) {
+        // Задает направлене движение змейки
         Point p = snake_list.front();
         switch (direction) {
             case Direction::Left:
@@ -109,22 +111,25 @@ public:
         Point head = GetNextPoint(direction);
         snake_list.push_front(head);
         if (food_flag == size_rise) {
+            // Останавлиает удаление хвоста змейки
             snake_list.pop_back();
         } else {
             ++food_flag;
         }
-        rotate = true;
     }
 
     void Eat() {
+        // Запускает рост змеки
         food_flag = 0;
     }
 
     Point get_head() {
+        // Возвращает голову змейку
         return snake_list.front();
     }
 
     const std::list<Point> &get_snake() {
+        // Возвращает список  координат  змейки
         return snake_list;
     }
 };
@@ -140,6 +145,7 @@ public:
     }
 
     void change_direction(Direction direction_in) {
+        // Меняет направление движение змейки
         if (direction_in == Direction::Left && direction_snake != Direction::Right) direction_snake = direction_in;
         if (direction_in == Direction::Right && direction_snake != Direction::Left) direction_snake = direction_in;
         if (direction_in == Direction::Up && direction_snake != Direction::Down) direction_snake = direction_in;
@@ -147,6 +153,7 @@ public:
     }
 
     void check_food() {
+        // Проверяет появление еды на змейке
         std::list<Point> snake_list = tvar.get_snake();
         for (auto i = snake_list.begin(); i != snake_list.end(); ++i) {
             if (*i == food.food_point) {
@@ -157,10 +164,11 @@ public:
     }
 
     bool checker() {
+        // Функция проверяет змейку на столкновение с собой же и стенами
         Point head = tvar.get_head();
-        if (head.x < table_width || head.x > table_size - table_width)
+        if (head.x < table_width || head.x >= table_size - table_width * 2)
             return false;
-        if (head.y < table_record_size + table_width || head.y > table_size - table_width + table_record_size)
+        if (head.y < table_record_size + table_width || head.y > table_size - table_width * 2 + table_record_size)
             return false;
         std::list<Point> snake_list = tvar.get_snake();
         int j = 0;
@@ -173,23 +181,22 @@ public:
     }
 
     void goo() {
+        // Функция отвечает за перемещение змейки. Проверяет съела ли змека еду
         if (in_radius(food.food_point, tvar.get_head(), food_size + 1)) {
-            std::cout << "Point";
+//            std::cout << "Point";
             tvar.Eat();
             food.CreateFood();
             check_food();
-//            (food.food_point.x + food_size > tvar.get_head().x
-//             && food.food_point.x - food_size < tvar.get_head().x)
-//            && (food.food_point.y + food_size > tvar.get_head().y
-//                && food.food_point.y - food_size < tvar.get_head().y)
         }
         tvar.Move(direction_snake);
     }
 
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
+        // Отрисовка игры
         states.transform *= getTransform();
         tvar.draw(target, states);
         food.draw(target, states);
+        // Отрисовка поля
         sf::RectangleShape line_Up(sf::Vector2f(table_size, table_width));
         sf::RectangleShape line_Down(sf::Vector2f(table_size, table_width));
         sf::RectangleShape line_Left(sf::Vector2f(table_width, table_size));
