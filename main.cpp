@@ -11,6 +11,7 @@ const int table_record_size = 25; //Размер таблички для сче�
 const int food_size = 5; // Размер еды для змеки
 const int step = 2; // Шаг змейки по полю
 const int size_rise = 10; // Размер роста змейки
+const int shake_width = 5;
 
 
 struct Point {
@@ -161,7 +162,7 @@ public:
         // Проверяет появление еды на змейке
         std::list<Point> snake_list = tvar.get_snake();
         for (auto i = snake_list.begin(); i != snake_list.end(); ++i) {
-            if (*i == food.food_point) {
+            if (in_radius(*i, food.food_point, food_size + shake_width)) {
                 food.CreateFood();
                 i = snake_list.begin();
             }
@@ -187,7 +188,7 @@ public:
 
     void goo() {
         // Функция отвечает за перемещение змейки. Проверяет съела ли змека еду
-        if (in_radius(food.food_point, tvar.get_head(), food_size + 1)) {
+        if (in_radius(food.food_point, tvar.get_head(), food_size + shake_width)) {
 //            std::cout << "Point";
             tvar.Eat();
             food.CreateFood();
@@ -195,6 +196,11 @@ public:
             score += 10;
         }
         tvar.Move(direction_snake);
+    }
+
+    int get_score() {
+        //возвращает очки
+        return score;
     }
 
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
@@ -215,10 +221,6 @@ public:
         target.draw(line_Down, states);
         target.draw(line_Left, states);
         target.draw(line_Right, states);
-    }
-
-    int get_score() {
-        return score;
     }
 };
 
@@ -241,7 +243,7 @@ int main() {
     while (window.isOpen()) {
         game.goo();
         if (!game.checker()) window.close();
-        txt.setString("SCORE  "  + std::to_string(game.get_score()));
+        txt.setString("SCORE  " + std::to_string(game.get_score()));
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
             if (event.type == sf::Event::KeyPressed) {
