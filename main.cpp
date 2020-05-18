@@ -1,9 +1,9 @@
 #include <SFML/Graphics.hpp>
-#include <cstdlib>
 #include <list>
 #include <ctime>
 #include <stdlib.h>
 #include <iostream>
+#include <string>
 
 const int table_size = 600; // Размер игрового поля
 const int table_width = 5; // Ширина линий поля
@@ -32,8 +32,9 @@ enum class Direction {
 
 bool in_radius(Point a, Point b, int r) {
     // Функция проверяет находится ли одна точка в окружности другой точки
-    return  (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) <= r * r;
+    return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) <= r * r;
 }
+
 class Food : public sf::Drawable, public sf::Transformable {
 public:
     Point food_point;
@@ -43,7 +44,8 @@ public:
         std::srand(time(nullptr));
         int rnd = random();
         food_point.x = rnd % (table_size - table_width - food_size + 1) + table_width + food_size;
-        food_point.y = rnd % (table_size - table_width - table_record_size - food_size + 1) + table_width + table_record_size +
+        food_point.y =
+                rnd % (table_size - table_width - table_record_size - food_size + 1) + table_width + table_record_size +
                 food_size;
         std::cout << food_point.x << " " << food_point.y << std::endl;
     }
@@ -57,6 +59,7 @@ public:
         states.transform *= getTransform();
         sf::CircleShape circle(5.f);
         circle.move(food_point.x, food_point.y);
+        circle.setFillColor(sf::Color(255, 0, 0));
         target.draw(circle, states);
     }
 };
@@ -67,9 +70,9 @@ private:
     int food_flag = size_rise;
 
 public:
-    Snake(int x = table_size / 2, int y = table_size / 2, int length =  40) {
+    Snake(int x = table_size / 2, int y = table_size / 2, int length = 40) {
         // Создает змейку
-        for (int i = x - length; i < x;i+=step) {
+        for (int i = x - length; i < x; i += step) {
             Point p((i), y);
             snake_list.push_back(p);
 
@@ -82,6 +85,7 @@ public:
         for (auto i = snake_list.begin(); i != snake_list.end(); ++i) {
             sf::CircleShape circle(5.f);
             circle.move(i->x, i->y);
+            circle.setFillColor(sf::Color(49, 127, 67));
             target.draw(circle, states);
         }
 
@@ -138,6 +142,7 @@ class Game : public sf::Drawable, public sf::Transformable {
     Snake tvar;
     Food food;
     Direction direction_snake;
+    int score = 0;
 
 public:
     Game() {
@@ -187,6 +192,7 @@ public:
             tvar.Eat();
             food.CreateFood();
             check_food();
+            score += 10;
         }
         tvar.Move(direction_snake);
     }
@@ -210,6 +216,10 @@ public:
         target.draw(line_Left, states);
         target.draw(line_Right, states);
     }
+
+    int get_score() {
+        return score;
+    }
 };
 
 int main() {
@@ -217,9 +227,21 @@ int main() {
     window.setFramerateLimit(60);
     Game game;
     sf::Event event;
+
+    sf::Font font;
+    if (!font.loadFromFile("Arial.ttf")) {
+        return 1;
+    }
+    sf::Text txt;
+    txt.setPosition(0, 0);
+    txt.setFont(font);
+    txt.setCharacterSize(20);
+    txt.setColor(sf::Color::White);
+    txt.setStyle(sf::Text::Bold);
     while (window.isOpen()) {
         game.goo();
         if (!game.checker()) window.close();
+        txt.setString("SCORE  "  + std::to_string(game.get_score()));
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
             if (event.type == sf::Event::KeyPressed) {
@@ -243,7 +265,7 @@ int main() {
         // Выполняем необходимые действия по отрисовке
         window.clear();
         window.draw(game);
-//        window.draw(text);
+        window.draw(txt);
         window.display();
     }
     return 0;
