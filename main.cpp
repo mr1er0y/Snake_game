@@ -1,19 +1,22 @@
 #include <SFML/Graphics.hpp>
 #include <list>
 #include <ctime>
-#include <stdlib.h>
 #include <iostream>
 #include <string>
 
-const int table_size = 600; // Размер игрового поля
-const int table_width = 5; // Ширина линий поля
-const int table_record_size = 25; //Размер таблички для счета
-const int food_size = 5; // Размер еды для змеки
-const int step = 2; // Шаг змейки по полю
-const int size_rise = 10; // Размер роста змейки
-const int shake_width = 5;
+const int table_size = 600; ///< Размер игрового поля
+const int table_width = 5; ///< Ширина линий поля
+const int table_record_size = 25; ///< Размер таблички для счета
+const int food_size = 5; ///< Размер еды для змеки
+const int step = 2; ///< Шаг змейки по полю
+const int size_rise = 10; ///< Размер роста змейки
+const int shake_width = 5; ///< Ширина змейки
 
+/*!
+	\brief Структура Точка
 
+	Данная структура содержит координаты x и y
+*/
 struct Point {
     int x, y;
 
@@ -27,36 +30,55 @@ struct Point {
     }
 };
 
+/// Набор всех возможных наравлений
 enum class Direction {
-    Left = 0, Right = 1, Up = 2, Down = 3
+    Left = 0, ///<  Лево
+    Right = 1, ///<  Право
+    Up = 2, ///< Верх
+    Down = 3 ///< Низ
 };
 
-bool in_radius(Point a, Point b, int r) {
-    // Функция проверяет находится ли одна точка в окружности другой точки
+/*!
+Функция проверяет находится ли одна точка в окружности другой точки
+\param[in] a Координаты первой точки
+\param[in] b Координаты второй точки
+\param[in] r Радиус точки
+\return возвращает true если одна из точек находится в окружности другой точки, false в ином случае
+*/
+bool in_radius(const Point &a, const Point &b, const int &r) {
     return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) <= r * r;
 }
 
+/*!
+	\brief Класс еды
+
+	Данный класс предназначен для работы с едой для змейки.
+    Наследует sf::Drawable, sf::Transformable для рисования еды
+*/
 class Food : public sf::Drawable, public sf::Transformable {
 public:
-    Point food_point;
+    Point food_point;///< Координаты еды
 
+    /*!
+    Создает точку в пределах игрового поля
+    */
     void CreateFood() {
-        // Создает точку в пределах игрового поля
         std::srand(time(nullptr));
         int rnd = random();
         food_point.x = rnd % (table_size - table_width - food_size + 1) + table_width + food_size;
         food_point.y =
                 rnd % (table_size - table_width - table_record_size - food_size + 1) + table_width + table_record_size +
                 food_size;
-        std::cout << food_point.x << " " << food_point.y << std::endl;
     }
 
     Food() {
         CreateFood();
     }
 
+    /*!
+        Рисует еду
+    */
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
-        // Рисует точку
         states.transform *= getTransform();
         sf::CircleShape circle(5.f);
         circle.move(food_point.x, food_point.y);
@@ -65,14 +87,22 @@ public:
     }
 };
 
+/*!
+	\brief Класс перемещаемого объекта
+
+    Данный класс предназначен для работы с перемещаемым объектом - змейкой.
+    Наследует sf::Drawable, sf::Transformable для рисования еды
+*/
 class Snake : public sf::Drawable, public sf::Transformable {
 private:
-    std::list<Point> snake_list;
+    std::list<Point> snake_list; ///< лист координат змейки
     int food_flag = size_rise;
 
 public:
+    /*!
+      Создает змейку
+    */
     Snake(int x = table_size / 2, int y = table_size / 2, int length = 40) {
-        // Создает змейку
         for (int i = x - length; i < x; i += step) {
             Point p((i), y);
             snake_list.push_back(p);
@@ -80,20 +110,26 @@ public:
         }
     }
 
+    /*!
+    Отрисовывает змейку
+    */
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
-        // Отрисовывает змейку
         states.transform *= getTransform();
-        for (auto i = snake_list.begin(); i != snake_list.end(); ++i) {
+        for (auto i : snake_list) {
             sf::CircleShape circle(5.f);
-            circle.move(i->x, i->y);
+            circle.move(i.x, i.y);
             circle.setFillColor(sf::Color(49, 127, 67));
             target.draw(circle, states);
         }
 
     }
 
+    /*!
+    Функция задает направлене движения объекта
+    \param[in] direction направление объекта
+    \return координату следующей точки
+    */
     Point GetNextPoint(Direction direction) {
-        // Задает направлене движение змейки
         Point p = snake_list.front();
         switch (direction) {
             case Direction::Left:
@@ -112,54 +148,75 @@ public:
         return p;
     }
 
-    void Move(Direction direction) {
+    /*!
+    Данная функция отвечает за перемещения объекта
+    \param[in] direction направление объекта
+    */
+    void Move(const Direction &direction) {
         Point head = GetNextPoint(direction);
         snake_list.push_front(head);
         if (food_flag == size_rise) {
-            // Останавлиает удаление хвоста змейки
+            /// Останавлиает удаление хвоста змейки
             snake_list.pop_back();
         } else {
             ++food_flag;
         }
     }
 
+    /*!
+    Запускает рост змеки
+    */
     void Eat() {
-        // Запускает рост змеки
         food_flag = 0;
     }
 
+    /*!
+    Возвращает голову змейку
+    \return координату начала объекта
+    */
     Point get_head() {
-        // Возвращает голову змейку
         return snake_list.front();
     }
 
+    /*!
+    Возвращает список  координат  змейки
+    \return список  координат  объекта
+    */
     const std::list<Point> &get_snake() {
-        // Возвращает список  координат  змейки
         return snake_list;
     }
 };
 
+/*!
+	\brief
+
+
+*/
 class Game : public sf::Drawable, public sf::Transformable {
-    Snake tvar;
-    Food food;
-    Direction direction_snake;
-    int score = 0;
+    Snake tvar; ///< сам объект - змейка
+    Food food; ///< еда для змейки
+    Direction direction_snake; ///< направление змейки
+    int score = 0; ///< счет игры
 
 public:
     Game() {
         direction_snake = Direction::Up;
     }
 
+    /*!
+     Меняет направление движение змейки
+    */
     void change_direction(Direction direction_in) {
-        // Меняет направление движение змейки
         if (direction_in == Direction::Left && direction_snake != Direction::Right) direction_snake = direction_in;
         if (direction_in == Direction::Right && direction_snake != Direction::Left) direction_snake = direction_in;
         if (direction_in == Direction::Up && direction_snake != Direction::Down) direction_snake = direction_in;
         if (direction_in == Direction::Down && direction_snake != Direction::Up) direction_snake = direction_in;
     }
 
+    /*!
+       Проверяет появление еды на змейке
+    */
     void check_food() {
-        // Проверяет появление еды на змейке
         std::list<Point> snake_list = tvar.get_snake();
         for (auto i = snake_list.begin(); i != snake_list.end(); ++i) {
             if (in_radius(*i, food.food_point, food_size + shake_width)) {
@@ -169,10 +226,13 @@ public:
         }
     }
 
+    /*!
+     Функция проверяет змейку на столкновение с собой же и стенами
+    \return false если объект врезается в стены или сам в себя, true если все хорошо
+    */
     bool checker() {
-        // Функция проверяет змейку на столкновение с собой же и стенами
         Point head = tvar.get_head();
-        if (head.x < table_width || head.x >= table_size - table_width * 2)
+        if (head.x + shake_width < table_width || head.x + shake_width >= table_size - table_width)
             return false;
         if (head.y < table_record_size + table_width || head.y > table_size - table_width * 2 + table_record_size)
             return false;
@@ -186,10 +246,11 @@ public:
         return true;
     }
 
+    /*!
+    Функция отвечает за перемещение змейки. Проверяет съела ли змека еду
+    */
     void goo() {
-        // Функция отвечает за перемещение змейки. Проверяет съела ли змека еду
         if (in_radius(food.food_point, tvar.get_head(), food_size + shake_width)) {
-//            std::cout << "Point";
             tvar.Eat();
             food.CreateFood();
             check_food();
@@ -198,11 +259,17 @@ public:
         tvar.Move(direction_snake);
     }
 
+    /*!
+    Функция возвращает текущий счет
+    \return текущий счет
+    */
     int get_score() {
-        //возвращает очки
         return score;
     }
 
+    /*!
+    Рисование всех игровых объектов
+    */
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const {
         // Отрисовка игры
         states.transform *= getTransform();
@@ -272,3 +339,4 @@ int main() {
     }
     return 0;
 }
+
